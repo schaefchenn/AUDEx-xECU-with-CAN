@@ -1,2 +1,2 @@
-# AUDEx xECU with CAN
- This is the template for any ECU that will be developped for the AUDEx vehicles
+# CAN BUS testing
+ testing CAN with two ESP32 Boards
