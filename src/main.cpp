@@ -21,6 +21,7 @@ struct CanRecieveMessage {
   uint8_t length;
   uint8_t data[8];
   uint8_t driverReady;
+  uint8_t throttleValue;
 };
 
 int driverReady = 0;
@@ -67,7 +68,9 @@ int canReciever(){
         recvMsg.data[i] = CAN.read();
       }
 
-      return driverReady;
+      recvMsg.driverReader = recvMsg.data[0]
+      recvMsg.driverReader = recvMsg.data[1]
+      return recvMsg;
 
     }else {
       driverReady = CAN.read();
