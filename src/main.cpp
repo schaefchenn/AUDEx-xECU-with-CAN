@@ -13,7 +13,6 @@ struct CanMessage {
   uint8_t driverSignalRecieved;
 };
 
-
 struct CanRecieveMessage {
   bool extended;
   bool rtr;
@@ -27,6 +26,7 @@ struct CanRecieveMessage {
 int driverReady = 0;
 int flag = 0;
 
+uint8_t throttleValue = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -42,44 +42,34 @@ void setup() {
   if (!CAN.begin(1E6)) {
     Serial.println("Starting CAN failed!");
     while (1);
-  }
-  else {
+  } else {
     Serial.println("CAN Initialized");
   }
 }
 
-int canReciever(){
+CanRecieveMessage canReciever() {
+  CanRecieveMessage recvMsg;
   int packetSize = CAN.parsePacket();
 
   if (packetSize) {
+    recvMsg.extended = CAN.packetExtended();
+    recvMsg.rtr = CAN.packetRtr();
+    recvMsg.id = CAN.packetId();
+    recvMsg.length = CAN.packetDlc();
 
-    CanRecieveMessage recvMsg;
-
-
-    if (CAN.packetExtended()) {
-      // recieve packet
-      recvMsg.extended = CAN.packetExtended();
-      recvMsg.rtr = CAN.packetRtr();
-      recvMsg.id = CAN.packetId();
-      recvMsg.length = CAN.packetDlc();
-
-      // read packet data into the struct
-      for (int i = 0; i < packetSize; i++){
-        recvMsg.data[i] = CAN.read();
-      }
-
-      recvMsg.driverReader = recvMsg.data[0]
-      recvMsg.driverReader = recvMsg.data[1]
-      return recvMsg;
-
-    }else {
-      driverReady = CAN.read();
-      return driverReady;
+    // Read packet data into the struct
+    for (int i = 0; i < packetSize; i++) {
+      recvMsg.data[i] = CAN.read();
     }
+
+    recvMsg.driverReady = recvMsg.data[0];
+    recvMsg.throttleValue = recvMsg.data[1];
+    Serial.println(recvMsg.throttleValue);
   }
+  return recvMsg;
 }
 
-void canSender(uint8_t driveMode, float throttleValue, float steeringAngle, uint8_t driverSignalRecieved) {
+void canSender(uint8_t driveMode, uint8_t throttleValue, uint8_t steeringAngle, uint8_t driverSignalRecieved) {
   CanMessage msg;
   msg.driveMode = driveMode;
   msg.throttleValue = throttleValue;
@@ -95,20 +85,28 @@ void canSender(uint8_t driveMode, float throttleValue, float steeringAngle, uint
 
 void loop() {
   // Example: Send drive mode 2, throttle value 0.5, and steering angle -0.2
-  Serial.println("waiting for driver");
-  while(driverReady != 1 && flag == 0){
-    driverReady = canReciever();
-    if (driverReady == 1){ flag = 1; canSender(2, 160, 60,1);}
+  CanRecieveMessage data = canReciever();
+  driverReady = data.driverReady;
+  if (driverReady == 1 && flag == 0) {
+    flag = 1;
+    canSender(1, 150, 90, 1);
+    Serial.println("Driver ready!");
   }
-  Serial.println("driver ready!");
   
+
+  if (data.throttleValue != 252 && driverReady == 1){
+    Serial.println(data.throttleValue);
+  }
+  
+  //delay(100);
+  /*
   delay(10000);
-  canSender(2, 160, 60,1);
+  canSender(2, 160, 60, 1);
   delay(5000);  // Adjust delay as needed between sending messages
-  canSender(2, 150, 120,1);
+  canSender(2, 150, 120, 1);
   delay(5000);
-  canSender(2, 120, 90,1);
+  canSender(2, 120, 90, 1);
   delay(10000);
-  canSender(1, 120, 90,1);
-  //huhu
+  canSender(1, 120, 90, 1);
+  */
 }
